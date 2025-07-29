@@ -12,13 +12,20 @@ EXTRUDE_DEPTH = 0.01
 MESH_CELLS_X = 400
 MESH_CELLS_Y = 320
 
+# FLOW CONDITIONS
+INLET_VELOCITY = 10.0  # m/s
+ANGLE_OF_ATTACK = 5.0  # degrees
+KINEMATIC_VISCOSITY = 1.5e-5  # m²/s (air at 15°C)
+DENSITY = 1.225  # kg/m³ (air at 15°C)
+TURBULENCE_MODEL = "kEpsilon"  # kEpsilon, kOmega, kOmegaSST, laminar
+
 # Prepare directories
 def prepare_directories():
     os.makedirs("system", exist_ok=True)
     os.makedirs("constant/triSurface", exist_ok=True)
     os.makedirs("0", exist_ok=True)
 
-# Read and scale airfoil coordinates
+# 1. Read and scale airfoil coordinates
 def read_airfoil(filename):
     coords = np.loadtxt(filename)
     coords = coords / 1000.0
@@ -29,7 +36,7 @@ def read_airfoil(filename):
         coords = np.vstack([coords, coords[0]])
     return coords
 
-# Create STL from scaled coordinates
+# 2. Create STL from scaled coordinates - ORIGINAL WORKING VERSION
 def create_stl(coords, filename):
     vertices = []
     faces = []
@@ -42,12 +49,14 @@ def create_stl(coords, filename):
         vertices.append([x, y, EXTRUDE_DEPTH]) # Back face
     
     # Create triangular faces for the airfoil surface
+    # We need to ensure proper winding order for normals
     for i in range(n - 1):  # n-1 because last point = first point
         v0_front = i * 2
         v0_back = i * 2 + 1
         v1_front = (i + 1) * 2
         v1_back = (i + 1) * 2 + 1
         
+        # Create quad as two triangles with correct winding
         # Triangle 1: front -> next_front -> next_back
         faces.append([v0_front, v1_front, v1_back])
         # Triangle 2: front -> next_back -> back
@@ -167,7 +176,7 @@ airfoil.stl
 """)
     print("surfaceFeatureExtractDict written.")
 
-# Write snappyHexMeshDict
+# Write snappyHexMeshDict - ORIGINAL WORKING VERSION
 def write_snappyHexMeshDict():
     with open("system/snappyHexMeshDict", "w") as f:
         f.write("""FoamFile
@@ -396,6 +405,451 @@ relaxationFactors
 """)
     print("fvSolution written.")
 
+# Write transport properties
+def write_transportProperties():
+    with open("constant/transportProperties", "w") as f:
+        f.write(f"""FoamFile
+{{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      transportProperties;
+}}
+
+transportModel  Newtonian;
+nu              {KINEMATIC_VISCOSITY};
+""")
+    print("transportProperties written.")
+
+# Write turbulence properties
+def write_turbulenceProperties():
+    with open("constant/turbulenceProperties", "w") as f:
+        turbulence_models = {
+            "laminar": "laminar",
+            "kEpsilon": "kEpsilon", 
+            "kOmega": "kOmega",
+            "kOmegaSST": "kOmegaSST"
+        }
+        
+        model = turbulence_models.get(TURBULENCE_MODEL, "kEpsilon")
+        
+        f.write(f"""FoamFile
+{{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      turbulenceProperties;
+}}
+
+simulationType RAS;
+
+RAS
+{{
+    RASModel        {model};
+    turbulence      on;
+    printCoeffs     on;
+}}
+""")
+    print(f"turbulenceProperties written ({TURBULENCE_MODEL})")
+
+# Calculate inlet turbulence conditions
+def calculate_inlet_conditions():
+    U_inf = INLET_VELOCITY
+    I = 0.05  # 5% turbulence intensity
+    L = 0.1   # turbulence length scale (10% of chord)
+    
+    k = 1.5 * (U_inf * I) ** 2
+    epsilon = 0.09 * k**(1.5) / L
+    omega = epsilon / (0.09 * k)
+    
+    return k, epsilon, omega
+
+# NEW: Calculate turbulent viscosity
+def calculate_nut():
+    k, epsilon, omega = calculate_inlet_conditions()
+    
+    if TURBULENCE_MODEL == "kEpsilon":
+        # For k-epsilon: nut = Cmu * k^2 / epsilon
+        Cmu = 0.09
+        nut = Cmu * k**2 / epsilon
+    elif TURBULENCE_MODEL in ["kOmega", "kOmegaSST"]:
+        # For k-omega: nut = k / omega
+        nut = k / omega
+    else:
+        # For laminar flow
+        nut = 0.0
+    
+    return nut
+
+# Write boundary condition files
+def write_boundary_conditions():
+    # Calculate inlet velocity components
+    aoa_rad = np.radians(ANGLE_OF_ATTACK)
+    U_x = INLET_VELOCITY * np.cos(aoa_rad)
+    U_y = INLET_VELOCITY * np.sin(aoa_rad)
+    
+    k, epsilon, omega = calculate_inlet_conditions()
+    nut = calculate_nut()
+    
+    # Pressure field
+    with open("0/p", "w") as f:
+        f.write(f"""FoamFile
+{{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      p;
+}}
+
+dimensions      [0 2 -2 0 0 0 0];
+internalField   uniform 0;
+
+boundaryField
+{{
+    inlet
+    {{
+        type            zeroGradient;
+    }}
+    
+    outlet
+    {{
+        type            fixedValue;
+        value           uniform 0;
+    }}
+    
+    top
+    {{
+        type            zeroGradient;
+    }}
+    
+    bottom
+    {{
+        type            zeroGradient;
+    }}
+    
+    airfoil
+    {{
+        type            zeroGradient;
+    }}
+    
+    frontAndBack
+    {{
+        type            empty;
+    }}
+}}
+""")
+    
+    # Velocity field
+    with open("0/U", "w") as f:
+        f.write(f"""FoamFile
+{{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}}
+
+dimensions      [0 1 -1 0 0 0 0];
+internalField   uniform ({U_x} {U_y} 0);
+
+boundaryField
+{{
+    inlet
+    {{
+        type            fixedValue;
+        value           uniform ({U_x} {U_y} 0);
+    }}
+    
+    outlet
+    {{
+        type            zeroGradient;
+    }}
+    
+    top
+    {{
+        type            slip;
+    }}
+    
+    bottom
+    {{
+        type            slip;
+    }}
+    
+    airfoil
+    {{
+        type            noSlip;
+    }}
+    
+    frontAndBack
+    {{
+        type            empty;
+    }}
+}}
+""")
+    
+    # Turbulent kinetic energy
+    if TURBULENCE_MODEL != "laminar":
+        with open("0/k", "w") as f:
+            f.write(f"""FoamFile
+{{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      k;
+}}
+
+dimensions      [0 2 -2 0 0 0 0];
+internalField   uniform {k:.6f};
+
+boundaryField
+{{
+    inlet
+    {{
+        type            fixedValue;
+        value           uniform {k:.6f};
+    }}
+    
+    outlet
+    {{
+        type            zeroGradient;
+    }}
+    
+    top
+    {{
+        type            slip;
+    }}
+    
+    bottom
+    {{
+        type            slip;
+    }}
+    
+    airfoil
+    {{
+        type            kqRWallFunction;
+        value           uniform {k:.6f};
+    }}
+    
+    frontAndBack
+    {{
+        type            empty;
+    }}
+}}
+""")
+    
+        # Turbulence dissipation rate or specific dissipation rate
+        if TURBULENCE_MODEL in ["kEpsilon"]:
+            with open("0/epsilon", "w") as f:
+                f.write(f"""FoamFile
+{{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      epsilon;
+}}
+
+dimensions      [0 2 -3 0 0 0 0];
+internalField   uniform {epsilon:.6f};
+
+boundaryField
+{{
+    inlet
+    {{
+        type            fixedValue;
+        value           uniform {epsilon:.6f};
+    }}
+    
+    outlet
+    {{
+        type            zeroGradient;
+    }}
+    
+    top
+    {{
+        type            slip;
+    }}
+    
+    bottom
+    {{
+        type            slip;
+    }}
+    
+    airfoil
+    {{
+        type            epsilonWallFunction;
+        value           uniform {epsilon:.6f};
+    }}
+    
+    frontAndBack
+    {{
+        type            empty;
+    }}
+}}
+""")
+        
+        elif TURBULENCE_MODEL in ["kOmega", "kOmegaSST"]:
+            with open("0/omega", "w") as f:
+                f.write(f"""FoamFile
+{{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      omega;
+}}
+
+dimensions      [0 0 -1 0 0 0 0];
+internalField   uniform {omega:.6f};
+
+boundaryField
+{{
+    inlet
+    {{
+        type            fixedValue;
+        value           uniform {omega:.6f};
+    }}
+    
+    outlet
+    {{
+        type            zeroGradient;
+    }}
+    
+    top
+    {{
+        type            slip;
+    }}
+    
+    bottom
+    {{
+        type            slip;
+    }}
+    
+    airfoil
+    {{
+        type            omegaWallFunction;
+        value           uniform {omega:.6f};
+    }}
+    
+    frontAndBack
+    {{
+        type            empty;
+    }}
+}}
+""")
+        
+        with open("0/nut", "w") as f:
+            f.write(f"""FoamFile
+{{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      nut;
+}}
+
+dimensions      [0 2 -1 0 0 0 0];
+internalField   uniform {nut:.6e};
+
+boundaryField
+{{
+    inlet
+    {{
+        type            calculated;
+        value           uniform {nut:.6e};
+    }}
+    
+    outlet
+    {{
+        type            calculated;
+        value           uniform {nut:.6e};
+    }}
+    
+    top
+    {{
+        type            calculated;
+        value           uniform {nut:.6e};
+    }}
+    
+    bottom
+    {{
+        type            calculated;
+        value           uniform {nut:.6e};
+    }}
+    
+    airfoil
+    {{
+        type            nutkWallFunction;
+        value           uniform {nut:.6e};
+    }}
+    
+    frontAndBack
+    {{
+        type            empty;
+    }}
+}}
+""")
+    
+    else:
+        # For laminar flow, still need nut file but with zero values
+        with open("0/nut", "w") as f:
+            f.write(f"""FoamFile
+{{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      nut;
+}}
+
+dimensions      [0 2 -1 0 0 0 0];
+internalField   uniform 0;
+
+boundaryField
+{{
+    inlet
+    {{
+        type            calculated;
+        value           uniform 0;
+    }}
+    
+    outlet
+    {{
+        type            calculated;
+        value           uniform 0;
+    }}
+    
+    top
+    {{
+        type            calculated;
+        value           uniform 0;
+    }}
+    
+    bottom
+    {{
+        type            calculated;
+        value           uniform 0;
+    }}
+    
+    airfoil
+    {{
+        type            calculated;
+        value           uniform 0;
+    }}
+    
+    frontAndBack
+    {{
+        type            empty;
+    }}
+}}
+""")
+    
+    print(f"   Inlet velocity: {U_x:.2f}, {U_y:.2f} m/s (AoA: {ANGLE_OF_ATTACK}°)")
+    if TURBULENCE_MODEL != "laminar":
+        print(f"   Turbulence: k={k:.6f}, ε={epsilon:.6f}, ω={omega:.6f}")
+        print(f"   Turbulent viscosity: nut={nut:.6e}")
+    else:
+        print("   Laminar flow: nut=0")
+
+# Main script
 if __name__ == '__main__':
     prepare_directories()
     coords = read_airfoil(AIRFOIL_FILE)
@@ -406,8 +860,17 @@ if __name__ == '__main__':
     write_snappyHexMeshDict()
     write_fvSchemes()
     write_fvSolution()
-    print("System files made")
-    print("\nTo generate the mesh with airfoil boundary, run these commands in sequence:")
+    write_transportProperties()
+    write_turbulenceProperties()
+    write_boundary_conditions()
+    
+    print("All system files generated. Run")
     print("1. blockMesh")
     print("2. surfaceFeatureExtract") 
     print("3. snappyHexMesh -overwrite")
+    print("Note: If you get an error in Paraview that says the mesh count don't match, you needa remove 0/ file then run the script again once you do snappyHexMesh")
+    print("4. simpleFoam")
+    print("")
+    print(f"   INLET_VELOCITY = {INLET_VELOCITY} m/s")
+    print(f"   ANGLE_OF_ATTACK = {ANGLE_OF_ATTACK}°") 
+    print(f"   TURBULENCE_MODEL = {TURBULENCE_MODEL}")

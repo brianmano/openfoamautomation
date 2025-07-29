@@ -16,38 +16,45 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-5
+6
 (
     inlet
     {
         type            patch;
         nFaces          320;
-        startFace       255280;
+        startFace       266147;
     }
     outlet
     {
         type            patch;
         nFaces          320;
-        startFace       255600;
+        startFace       266467;
     }
     top
     {
         type            patch;
         nFaces          400;
-        startFace       255920;
+        startFace       266787;
     }
     bottom
     {
         type            patch;
         nFaces          400;
-        startFace       256320;
+        startFace       267187;
     }
     frontAndBack
     {
         type            empty;
         inGroups        1(empty);
-        nFaces          256000;
-        startFace       256720;
+        nFaces          257978;
+        startFace       267587;
+    }
+    airfoil
+    {
+        type            wall;
+        inGroups        1(wall);
+        nFaces          1292;
+        startFace       525565;
     }
 )
 
