@@ -310,7 +310,7 @@ def write_snappyHexMeshDict():
 castellatedMesh true;
 snap            true;
 addLayers       true;  // Changed to enable boundary layers
-
+ 
 geometry
 {
     airfoil.stl
@@ -318,7 +318,7 @@ geometry
         type triSurfaceMesh;
         name airfoil;
     }
-    
+   
     // Nearfield refinement box around airfoil
     nearfield
     {
@@ -326,36 +326,36 @@ geometry
         min (-2.0 -1.0 0.0);     // Adjust coordinates based on your airfoil position
         max ( 4.0  1.0 0.01);    // Extend further downstream for wake capture
     }
-    
+   
 }
-
+ 
 castellatedMeshControls
 {
     maxLocalCells       1000000;  // Increased for boundary layers
     maxGlobalCells      2000000; // Increased for boundary layers
     minRefinementCells  10;
     nCellsBetweenLevels 2;
-
+ 
     features
     (
         {
             file "airfoil.eMesh";
-            level 3;
+            level 2;
         }
     );
-
+ 
     refinementSurfaces
     {
         airfoil
         {
-            level (4 4);  // Increased refinement for better boundary layer attachment
+            level (2 2);  // Increased refinement for better boundary layer attachment
             patchInfo
             {
                 type wall;
             }
         }
     }
-
+ 
     refinementRegions
     {
         nearfield
@@ -363,14 +363,14 @@ castellatedMeshControls
             mode inside;
             levels ((1E15 1));  // Level 2 refinement in nearfield
         }
-        
+       
     }
-
-    resolveFeatureAngle 15;
+ 
+    resolveFeatureAngle 20;
     locationInMesh      (0 0.5 0.005);
     allowFreeStandingZoneFaces true;
 }
-
+ 
 snapControls
 {
     nSmoothPatch 3;
@@ -381,44 +381,40 @@ snapControls
     explicitFeatureSnap    false;
     implicitFeatureSnap    true;
 }
-
+ 
 addLayersControls
 {
     relativeSizes true;
-    
+   
     layers
     {
         airfoil
         {
-            nSurfaceLayers 15;    // INCREASED from 8 - much higher BL resolution
+            nSurfaceLayers 10;  // Number of boundary layers
         }
     }
-    
-    // High-resolution boundary layer parameters
-    expansionRatio    1.1;        // REDUCED from 1.2 - tighter spacing
-    finalLayerThickness 0.2;      // REDUCED from 0.5 - thinner layers
-    minThickness      0.02;       // REDUCED from 0.1 - thinner minimum
-    
-    // Enhanced layer controls for accuracy
-    nGrow             2;          // INCREASED from 0 - buffer cells
-    featureAngle      45;         // REDUCED from 60 - better feature handling
-    slipFeatureAngle  20;         // REDUCED from 30 - tighter slip control
-    nRelaxIter        5;          // INCREASED from 3 - more relaxation
-    nSmoothSurfaceNormals 3;      // INCREASED from 1 - smoother normals
-    nSmoothNormals    10;         // INCREASED from 3 - much smoother
-    nSmoothThickness  20;         // INCREASED from 10 - smoother thickness
-    maxFaceThicknessRatio 0.3;    // REDUCED from 0.5 - more uniform layers
-    maxThicknessToMedialRatio 0.2; // REDUCED from 0.3 - better quality
-    minMedialAxisAngle 70;        // REDUCED from 90 - stricter criteria
-    nBufferCellsNoExtrude 1;      // INCREASED from 0 - buffer zones
-    nLayerIter        100;        // INCREASED from 50 - more iterations
-    nRelaxedIter      50;         // INCREASED from 20 - more relaxed iterations
-    
-    // Additional advanced controls
-    additionalReporting true;     // Better layer reporting
-    mergePatchFacesAngle 30;      // Merge patch faces for smoother layers
+   
+    // Boundary layer parameters
+    expansionRatio    1.2;      // Growth ratio between layers
+    finalLayerThickness 0.5;    // Thickness of final layer (relative to base mesh)
+    minThickness      0.1;      // Minimum layer thickness (relative)
+   
+    // Advanced layer controls
+    nGrow             0;        // Number of buffer cells around layer cells
+    featureAngle      60;       // Feature angle for layers
+    slipFeatureAngle  30;       // Slip on feature edges
+    nRelaxIter        3;        // Relaxation iterations
+    nSmoothSurfaceNormals 1;    // Smoothing of surface normals
+    nSmoothNormals    3;        // Smoothing of normals
+    nSmoothThickness  10;       // Smoothing of layer thickness
+    maxFaceThicknessRatio 0.5;  // Max ratio of layer thickness to face size
+    maxThicknessToMedialRatio 0.3; // Max ratio to medial axis
+    minMedialAxisAngle 90;      // Angle criterion for medial axis
+    nBufferCellsNoExtrude 0;    // Buffer cells where no extrusion
+    nLayerIter        50;       // Maximum layer iterations
+    nRelaxedIter      20;       // Relaxed iterations if not converged
 }
-
+ 
 meshQualityControls
 {
     // Relaxed quality controls for boundary layer meshing
@@ -436,7 +432,7 @@ meshQualityControls
     minTriangleTwist     -1;
     nSmoothScale         4;
     errorReduction       0.75;
-    
+   
     // Additional quality controls for layers
     relaxed
     {
@@ -454,7 +450,7 @@ meshQualityControls
         minTriangleTwist    -1;
     }
 }
-
+ 
 debug          0;
 mergeTolerance 1e-6;
 """)
