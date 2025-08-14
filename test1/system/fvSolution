@@ -13,8 +13,14 @@ solvers
     {
         solver          GAMG;
         tolerance       1e-06;
-        relTol          0.1;
+        relTol          0.01;  // Less strict
         smoother        GaussSeidel;
+        nPreSweeps      0;
+        nPostSweeps     2;
+        cacheAgglomeration on;
+        agglomerator    faceAreaPair;
+        nCellsInCoarsestLevel 50;  // Increased
+        mergeLevels     1;
     }
 
     U
@@ -52,8 +58,14 @@ solvers
 
 SIMPLE
 {
-    nNonOrthogonalCorrectors 0;
+    nNonOrthogonalCorrectors 1;  // Add non-orthogonal correctors
     consistent yes;
+    
+    residualControl
+    {
+        p               1e-3;  // Less strict
+        U               1e-4;
+    }
 }
 
 relaxationFactors

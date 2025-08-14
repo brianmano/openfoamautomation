@@ -13,18 +13,105 @@ FoamFile
     location    "system";
     object      controlDict;
 }
+
 application     simpleFoam;
+
 startFrom       startTime;
 startTime       0;
 stopAt          endTime;
-endTime         1000;
+endTime         5000;
+
 deltaT          1;
 writeControl    timeStep;
 writeInterval   100;
+
 purgeWrite      0;
 writeFormat     ascii;
-writePrecision 6;
+writePrecision  6;
 writeCompression off;
 timeFormat      general;
 timePrecision   6;
 runTimeModifiable true;
+
+functions
+{
+    forces
+    {
+        type            forces;
+        libs            ("libforces.so");
+        
+        writeControl    timeStep;
+        writeInterval   1;
+        
+        patches         (airfoil);
+        
+        rho             rhoInf;
+        rhoInf          1.225;
+        
+        CofR            (0 0 0);
+        liftDir         (0 1 0);
+        dragDir         (1 0 0);
+        pitchAxis       (0 0 1);
+    }
+
+    forceCoeffs
+    {
+        type            forceCoeffs;
+        libs            ("libforces.so");
+        
+        writeControl    timeStep;
+        writeInterval   1;
+        
+        patches         (airfoil);
+        
+        rho             rhoInf;
+        rhoInf          1.225;
+        
+        CofR            (0.25 0 0);
+        liftDir         (0 1 0);
+        dragDir         (1 0 0);
+        pitchAxis       (0 0 1);
+        
+        magUInf         14.6285;
+        lRef            1.0;
+        Aref            0.01;
+    }
+
+    pressureCoeff
+    {
+        type            pressure;
+        libs            ("libfieldFunctionObjects.so");
+        
+        writeControl    writeTime;
+        
+        mode            staticCoeff;
+        
+        rho             rhoInf;
+        rhoInf          1.225;
+        
+        pInf            0;
+        UInf            (14.6285 0 0);
+    }
+
+    wallPressure
+    {
+        type            surfaces;
+        libs            ("libsampling.so");
+        
+        writeControl    writeTime;
+        
+        surfaceFormat   raw;
+        
+        surfaces
+        (
+            airfoil
+            {
+                type        patch;
+                patches     (airfoil);
+                triangulate false;
+            }
+        );
+        
+        fields (p wallShearStress);
+    }
+}

@@ -7,14 +7,14 @@ FoamFile
 }
 
 dimensions      [0 2 -2 0 0 0 0];
-internalField   uniform 0.375000;
+internalField   uniform 0.000321;
 
 boundaryField
 {
     inlet
     {
         type            fixedValue;
-        value           uniform 0.375000;
+        value           uniform 0.000321;
     }
     
     outlet
@@ -34,8 +34,8 @@ boundaryField
     
     airfoil
     {
-        type            kqRWallFunction;
-        value           uniform 0.375000;
+        type            fixedValue;
+        value           uniform 1e-12;
     }
     
     frontAndBack

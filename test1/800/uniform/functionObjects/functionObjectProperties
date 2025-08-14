@@ -16,6 +16,83 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+cdf7e925f5746741c316f5fbcf39ad0dfca90775
+{
+    forces
+    {
+        vector
+        {
+            pressureForce   ( 0.0124694 0.9738059999999999 7.25943e-05 );
+            viscousForce    ( 0.022957 0.000808868 9.636890000000001e-07 );
+            internalForce   ( 0 0 0 );
+            pressureMoment  ( -0.00486141 6.72565e-05 0.487119 );
+            viscousMoment   ( -4.04382e-06 0.000114162 -0.00183849 );
+            internalMoment  ( 0 0 0 );
+        }
+    }
+    forceCoeffs
+    {
+        scalar
+        {
+            Cd              0.02702848907651635;
+            CdPressure      0.009513483186782364;
+            CdViscous       0.01751500588973399;
+            CdInternal      0;
+            Cd(f)           0.009802164431817535;
+            Cd(f)Pressure   0.001047746709702853;
+            Cd(f)Viscous    0.008754417722114681;
+            Cd(f)Internal   0;
+            Cd(r)           0.01722632464469882;
+            Cd(r)Pressure   0.008465736477079509;
+            Cd(r)Viscous    0.008760588167619307;
+            Cd(r)Internal   0;
+            Cl              0.7435795282910589;
+            ClPressure      0.7429624046333332;
+            ClViscous       0.0006171236577257143;
+            ClInternal      0;
+            Cl(f)           0.1874415133565866;
+            Cl(f)Pressure   0.1855760035699428;
+            Cl(f)Viscous    0.001865509786643789;
+            Cl(f)Internal   0;
+            Cl(r)           0.5561380149344723;
+            Cl(r)Pressure   0.5573864010633904;
+            Cl(r)Viscous    -0.001248386128918074;
+            Cl(r)Internal   0;
+            CmPitch         -0.1843482507889429;
+            CmPitchPressure -0.1859051987467238;
+            CmPitchViscous  0.001556947957780931;
+            CmPitchInternal 0;
+            CmRoll          -0.003712080106440642;
+            CmRollPressure  -0.003708994883688328;
+            CmRollViscous   -3.085222752313492e-06;
+            CmRollInternal  0;
+            CmYaw           0.0001524426021707922;
+            CmYawPressure   6.515950791813551e-05;
+            CmYawViscous    8.72830942526567e-05;
+            CmYawInternal   0;
+            Cs              -5.612083710876092e-05;
+            CsPressure      -5.538559328510801e-05;
+            CsViscous       -7.352438236529075e-07;
+            CsInternal      0;
+            Cs(f)           0.0001243821836164117;
+            Cs(f)Pressure   3.74667112755815e-05;
+            Cs(f)Viscous    8.691547234083024e-05;
+            Cs(f)Internal   0;
+            Cs(r)           -0.0001805030207251727;
+            Cs(r)Pressure   -9.285230456068951e-05;
+            Cs(r)Viscous    -8.765071616448316e-05;
+            Cs(r)Internal   0;
+        }
+    }
+}
+
+wallPressure
+{
+    p
+    {
+        file            "<case>/postProcessing/wallPressure/800/p_airfoil.raw";
+    }
+}
 
 
 // ************************************************************************* //

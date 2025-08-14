@@ -7,38 +7,38 @@ FoamFile
 }
 
 dimensions      [0 2 -1 0 0 0 0];
-internalField   uniform 6.123724e-02;
+internalField   uniform 2.145000e-06;
 
 boundaryField
 {
     inlet
     {
         type            calculated;
-        value           uniform 6.123724e-02;
+        value           uniform 2.145000e-06;
     }
     
     outlet
     {
         type            calculated;
-        value           uniform 6.123724e-02;
+        value           uniform 2.145000e-06;
     }
     
     top
     {
         type            calculated;
-        value           uniform 6.123724e-02;
+        value           uniform 2.145000e-06;
     }
     
     bottom
     {
         type            calculated;
-        value           uniform 6.123724e-02;
+        value           uniform 2.145000e-06;
     }
     
     airfoil
     {
-        type            nutkWallFunction;
-        value           uniform 6.123724e-02;
+        type            fixedValue;
+        value           uniform 0;
     }
     
     frontAndBack

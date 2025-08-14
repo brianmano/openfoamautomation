@@ -11,7 +11,7 @@ airfoil.stl
     extractionMethod extractFromSurface;
     extractFromSurfaceCoeffs
     {
-        includedAngle 150;
+        includedAngle 130; //prev 150
     }
     writeObj yes;
 }

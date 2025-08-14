@@ -8,4 +8,4 @@ FoamFile
 }
 
 transportModel  Newtonian;
-nu              1.5e-05;
+nu              1.46285e-05;;
