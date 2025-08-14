@@ -1,6 +1,9 @@
 /*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+| =========                 | OpenFOAM: The Open Source CFD Toolbox           |
+| \\      /  F ield         | Version:  2506                                  |
+|  \\    /   O peration     | Website:  www.openfoam.com                      |
+|   \\  /    A nd           |                                                 |
+|    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
 FoamFile
 {
@@ -10,6 +13,7 @@ FoamFile
     object      blockMeshDict;
 }
 convertToMeters 1.0;
+
 vertices
 (
     (-5.0 -4.0 0)
@@ -21,10 +25,14 @@ vertices
     (5.0 4.0 0.01)
     (-5.0 4.0 0.01)
 );
+
 blocks
 (
-    hex (0 1 2 3 4 5 6 7) (400 320 1) simpleGrading (1 1 1)
+    // Significantly increased cell count for a better base mesh
+    // This provides a more robust foundation for snappyHexMesh to work on.
+    hex (0 1 2 3 4 5 6 7) (1200 840 1) simpleGrading (1 1 1)
 );
+
 boundary
 (
     inlet
