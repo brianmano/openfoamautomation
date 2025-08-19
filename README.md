@@ -1,5 +1,7 @@
 # openfoamautomation
 
+<img width="567" height="461" alt="image" src="https://github.com/user-attachments/assets/548b219c-0832-4d10-a354-5c855e6a35d4" />
+
 
 ## Usage:
 Automated Genetic Algorithm to find optimal AoA and scale for airfoils using OpenFOAM CFD
