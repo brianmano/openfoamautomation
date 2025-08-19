@@ -228,17 +228,6 @@ functions
         
         writeFields     false;
     }}
-    
-    residuals
-    {{
-        type            residuals;
-        libs            ("libutilityFunctionObjects.so");
-        
-        writeControl    timeStep;
-        writeInterval   50;
-        
-        fields          (U p);
-    }}
 }}
 """)
     print("controlDict written with correct syntax.")
@@ -349,8 +338,8 @@ geometry
 castellatedMeshControls
 {
     // Limiting the total cell count for faster meshing
-    maxLocalCells    200000;
-    maxGlobalCells   400000;
+    maxLocalCells    100000;
+    maxGlobalCells   200000;
     minRefinementCells 10;
     nCellsBetweenLevels 2;
 
@@ -390,14 +379,11 @@ castellatedMeshControls
 
 snapControls
 {
-    // Reduces iterations for a faster (but potentially less accurate) snap
-    nSmoothPatch 1;
-    tolerance 2.0;
-    nSolveIter 5;
-    nRelaxIter 1;
-    nFeatureSnapIter 2;
-    explicitFeatureSnap false;
-    implicitFeatureSnap true;
+    nSmoothPatch      3;     // Changed from 1
+    tolerance         2.0;
+    nSolveIter        50;    // Changed from 5 (Crucial for proper snapping)
+    nRelaxIter        5;     // Changed from 1 (Helps the solver converge)
+    nFeatureSnapIter  10;    // Changed from 2
 }
 
 addLayersControls
@@ -434,9 +420,9 @@ addLayersControls
 
 meshQualityControls
 {
-    maxNonOrtho 75;
-    maxBoundarySkewness 25;
-    maxInternalSkewness 8;
+    maxNonOrtho         65;  // Changed from 75
+    maxBoundarySkewness 20;  // Changed from 25
+    maxInternalSkewness 4;   // Changed from 8 (This is a very important change)
     maxConcave 80;
     minVol 1e-15;
     minTetQuality 1e-30;
@@ -586,13 +572,13 @@ solvers
 
 SIMPLE
 {
-    nNonOrthogonalCorrectors 1;
+    nNonOrthogonalCorrectors 2;
     consistent yes;
     
     residualControl
     {
-        p               1e-3;
-        U               1e-4;
+        p               1e-2;       // Relaxed from 1e-3
+        U               1e-3;       // Relaxed from 1e-4
     }
 }
 
@@ -600,16 +586,17 @@ relaxationFactors
 {
     fields
     {
-        p       0.3;
+        p               0.2;        // More aggressive relaxation from 0.3
     }
     equations
     {
-        U       0.7;
-        k       0.7;
-        epsilon 0.7;
-        omega   0.7;
+        U               0.5;        // More aggressive relaxation from 0.7
+        k               0.5;        // More aggressive relaxation from 0.7
+        epsilon         0.5;        // More aggressive relaxation from 0.7
+        omega           0.5;        // More aggressive relaxation from 0.7
     }
 }
+
 """)
     print("fvSolution written.")
 

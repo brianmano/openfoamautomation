@@ -5,6 +5,7 @@ import subprocess
 import re
 import time
 from dotenv import set_key, find_dotenv, load_dotenv
+import csv
 
 # --- Import functions from our refactored case runner ---
 import case_runner
@@ -150,7 +151,9 @@ def on_gen_callback(ga_instance):
     last_fitness = ga_instance.last_generation_fitness
     if -1000.0 in last_fitness:
         print("\n!!! A simulation failed. Stopping the genetic algorithm. !!!")
-        ga_instance.stop = True
+        ga_instance.stop = True  # Set our custom flag for the final check
+        return "stop"            # This is the correct way to terminate the run
+
 
 if __name__ == '__main__':
     os.makedirs(MESH_CACHE_DIR, exist_ok=True)
@@ -170,8 +173,13 @@ if __name__ == '__main__':
         mutation_percent_genes=40,
         on_generation=on_gen_callback
     )
+
+    # --- FIX 1: Initialize the custom attribute before running ---
+    ga_instance.stop = False
+
     ga_instance.run()
     
+    # This check will now work correctly in all scenarios
     if ga_instance.stop:
         print("\n================= OPTIMIZATION TERMINATED =================")
         print("Optimization was stopped due to a simulation failure.")
@@ -182,4 +190,29 @@ if __name__ == '__main__':
         print(f"Best solution: AoA = {solution[0]:.4f}, Scale = {solution[1]:.4f}")
         print(f"Highest L/D Ratio (Fitness): {solution_fitness:.4f}")
         print("=======================================================")
-        ga_instance.plot_fitness()
+        
+        # --- NEW CODE FOR PLOTTING AND SAVING ---
+
+        # 1. Save the plot to a file instead of showing it
+        ga_instance.plot_fitness(title="GA Fitness Progression (L/D Ratio vs. Generation)",
+                                 save_dir="fitness_plot.png")
+        print("\nFitness progression plot saved to 'fitness_plot.png'")
+
+        # 2. Save the full GA object for later analysis
+        ga_instance.save(filename="ga_instance.pkl")
+        print("Full GA instance saved to 'ga_instance.pkl'")
+
+        # 3. Save the generation-by-generation data to a CSV file
+        best_solutions_data = []
+        for generation, sol, fit in zip(range(ga_instance.generations_completed),
+                                        ga_instance.best_solutions,
+                                        ga_instance.best_solutions_fitness):
+            best_solutions_data.append([generation + 1, fit, sol[0], sol[1]])
+
+        csv_filename = "ga_progression_data.csv"
+        with open(csv_filename, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["Generation", "Fitness_LD_Ratio", "AoA", "Scale"]) # Header
+            writer.writerows(best_solutions_data)
+
+        print(f"Progression data saved to '{csv_filename}'")
